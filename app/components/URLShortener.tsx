@@ -9,11 +9,15 @@ interface LinkDisplayData {
   destination: string;
   title?: string;
   description?: string;
+  status?: 'draft' | 'published' | 'synced';
+  created_at?: string;
 }
 
 export default function URLShortener() {
   const [linksData, setLinksData] = useState<LinkDisplayData[]>([]);
+  const [draftLinks, setDraftLinks] = useState<LinkDisplayData[]>([]);
   const [currentView, setCurrentView] = useState<'home' | 'admin'>('home');
+  const [adminView, setAdminView] = useState<'drafts' | 'all'>('drafts');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +34,10 @@ export default function URLShortener() {
 
   useEffect(() => {
     loadLinks();
-  }, []);
+    if (isAdminAuthenticated) {
+      loadAdminLinks();
+    }
+  }, [isAdminAuthenticated]);
 
   useEffect(() => {
     if (toast) {
@@ -65,17 +72,42 @@ export default function URLShortener() {
 
   const loadLinks = async () => {
     try {
-      // Load from database (will sync to vercel.json via GitHub workflow)
+      // Load only published/synced links for public view
       const response = await fetch('/api/links');
       if (!response.ok) throw new Error('Failed to fetch links from database');
       
       const data = await response.json();
-      setLinksData(data.redirects || []);
+      // Filter only published/synced links for public display
+      const publishedLinks = data.redirects?.filter((link: LinkDisplayData) => 
+        link.status === 'published' || link.status === 'synced'
+      ) || [];
+      setLinksData(publishedLinks);
     } catch (error) {
       console.error('Error loading links:', error);
       showToast('Error loading links from database', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadAdminLinks = async () => {
+    try {
+      // Load all links for admin view
+      const allResponse = await fetch('/api/admin/links');
+      const draftResponse = await fetch('/api/admin/links?status=draft');
+      
+      if (allResponse.ok) {
+        const allData = await allResponse.json();
+        setLinksData(allData.redirects || []);
+      }
+      
+      if (draftResponse.ok) {
+        const draftData = await draftResponse.json();
+        setDraftLinks(draftData.redirects || []);
+      }
+    } catch (error) {
+      console.error('Error loading admin links:', error);
+      showToast('Error loading admin links', 'error');
     }
   };
 
@@ -91,8 +123,10 @@ export default function URLShortener() {
       
       if (response.ok && result.authenticated) {
         setIsAdminAuthenticated(true);
+        setCurrentView('admin');
         showToast('Successfully logged in as admin', 'success');
         setAdminPassword('');
+        await loadAdminLinks();
       } else {
         showToast('Invalid admin password', 'error');
         setAdminPassword('');
@@ -112,8 +146,9 @@ export default function URLShortener() {
     }
 
     try {
-      // Add new redirect to database (will auto-sync to vercel.json via GitHub workflow)
-      const response = await fetch('/api/links', {
+      // Add new redirect to database as draft (admin approval needed)
+      const endpoint = isAdminAuthenticated ? '/api/admin/links' : '/api/links';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -127,8 +162,16 @@ export default function URLShortener() {
       const result = await response.json();
       
       if (response.ok) {
-        showToast('Redirect added to database! GitHub workflow will sync to vercel.json automatically.', 'success');
+        const message = isAdminAuthenticated 
+          ? 'Redirect saved as draft - approve to sync to vercel.json!'
+          : 'Redirect submitted for admin approval!';
+        showToast(message, 'success');
+        
         await loadLinks();
+        if (isAdminAuthenticated) {
+          await loadAdminLinks();
+        }
+        
         setShowForm(false);
         setEditingIndex(null);
         setFormData({ source: '', destination: '', title: '', description: '' });
@@ -137,6 +180,33 @@ export default function URLShortener() {
       }
     } catch (error) {
       showToast('Error adding redirect', 'error');
+    }
+  };
+
+  // Admin functions
+  const handleApproveDraft = async (id: number) => {
+    try {
+      const response = await fetch('/api/admin/links', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          action: 'approve'
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        showToast('Draft approved! Will sync to vercel.json on next GitHub Action.', 'success');
+        await loadAdminLinks();
+        // Trigger GitHub sync
+        await syncWithGitHub();
+      } else {
+        showToast(result.error || 'Error approving draft', 'error');
+      }
+    } catch (error) {
+      showToast('Error approving draft', 'error');
     }
   };
 
@@ -233,49 +303,49 @@ export default function URLShortener() {
         {currentView === 'home' ? (
           <div className="max-w-5xl mx-auto">
             {/* Hero Section */}
-            <div className="text-center mb-16">
-              <h1 className="text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+            <div className="text-center mb-12 lg:mb-16">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 lg:mb-6 tracking-tight px-4">
                 Simple URL Shortener
               </h1>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed px-4">
                 Create URL redirects with database storage and auto-sync to Vercel.
               </p>
-              <p className="text-lg text-gray-500 mt-3 max-w-xl mx-auto">
+              <p className="text-base sm:text-lg text-gray-500 mt-3 max-w-xl mx-auto px-4">
                 Database → GitHub Actions → vercel.json → Vercel CDN
               </p>
             </div>
 
             {/* Search Section */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-200/60 p-8 mb-12">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-200/60 p-4 sm:p-6 lg:p-8 mb-8 lg:mb-12 mx-4 sm:mx-0">
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none">
                   <i className="fas fa-search text-gray-400 text-lg"></i>
                 </div>
                 <input 
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full pl-14 pr-6 py-4 text-lg border border-gray-300/60 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500 bg-white/50" 
+                  className="block w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 text-base sm:text-lg border border-gray-300/60 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500 bg-white/50" 
                   placeholder="Search links, titles, or descriptions..."
                 />
               </div>
             </div>
 
             {/* Links Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 px-4 sm:px-0">
               {filteredLinks.map((link, index) => (
-                <div key={index} className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-200/60 p-8 hover:shadow-xl hover:shadow-gray-300/50 hover:border-blue-300/60 hover:-translate-y-1 transition-all duration-300">
+                <div key={index} className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-200/60 p-6 lg:p-8 hover:shadow-xl hover:shadow-gray-300/50 hover:border-blue-300/60 hover:-translate-y-1 transition-all duration-300">
                   {link.title && (
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors duration-200 leading-tight">
+                    <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors duration-200 leading-tight">
                       {link.title}
                     </h3>
                   )}
                   {link.description && (
-                    <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                    <p className="text-gray-600 text-sm mb-4 lg:mb-6 leading-relaxed">
                       {link.description}
                     </p>
                   )}
-                  <div className="bg-gray-50/80 backdrop-blur-sm rounded-xl p-4 mb-6 border border-gray-200/40">
+                  <div className="bg-gray-50/80 backdrop-blur-sm rounded-xl p-3 lg:p-4 mb-4 lg:mb-6 border border-gray-200/40">
                     <a 
                       href={link.destination} 
                       target="_blank" 
@@ -320,23 +390,47 @@ export default function URLShortener() {
                 </div>
               </div>
               {isAdminAuthenticated && (
-                <div className="flex flex-wrap gap-3">
-                  <button 
-                    onClick={syncWithGitHub}
-                    className="inline-flex items-center px-5 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 transition-all duration-200 focus:ring-2 focus:ring-orange-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
-                  >
-                    <i className="fab fa-github mr-2"></i>GitHub Sync
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setShowForm(true);
-                      setEditingIndex(null);
-                      setFormData({ source: '', destination: '', title: '', description: '' });
-                    }}
-                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 focus:ring-2 focus:ring-green-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
-                  >
-                    <i className="fas fa-plus mr-2"></i>Add New Redirect
-                  </button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex space-x-1 bg-gray-100/70 rounded-xl p-1">
+                    <button 
+                      onClick={() => setAdminView('drafts')}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                        adminView === 'drafts'
+                          ? 'text-gray-900 bg-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                      }`}
+                    >
+                      <i className="fas fa-hourglass-half mr-2"></i>Drafts ({draftLinks.length})
+                    </button>
+                    <button 
+                      onClick={() => setAdminView('all')}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                        adminView === 'all'
+                          ? 'text-gray-900 bg-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                      }`}
+                    >
+                      <i className="fas fa-list mr-2"></i>All Links ({linksData.length})
+                    </button>
+                  </div>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={syncWithGitHub}
+                      className="inline-flex items-center px-5 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 transition-all duration-200 focus:ring-2 focus:ring-orange-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
+                    >
+                      <i className="fab fa-github mr-2"></i>GitHub Sync
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setShowForm(true);
+                        setEditingIndex(null);
+                        setFormData({ source: '', destination: '', title: '', description: '' });
+                      }}
+                      className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 focus:ring-2 focus:ring-green-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
+                    >
+                      <i className="fas fa-plus mr-2"></i>Add New Redirect
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -477,37 +571,111 @@ export default function URLShortener() {
                   </div>
                 )}
 
-                {/* Admin Links Table */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-200/60 overflow-hidden">
-                  <div className="px-8 py-6 border-b border-gray-200/60 bg-gradient-to-r from-gray-50/80 to-white/80">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-green-50/80 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg shadow-green-500/10 border border-green-200/40">
-                        <i className="fas fa-list text-green-500 text-lg"></i>
+                {/* Draft Management Section */}
+                {adminView === 'drafts' && draftLinks.length > 0 && (
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-200/60 overflow-hidden">
+                    <div className="px-6 lg:px-8 py-6 border-b border-gray-200/60 bg-gradient-to-r from-yellow-50/80 to-white/80">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-yellow-50/80 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/10 border border-yellow-200/40">
+                          <i className="fas fa-hourglass-half text-yellow-500 text-lg"></i>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900">Pending Drafts</h3>
+                          <p className="text-gray-600 text-sm mt-1">Links awaiting approval for sync to vercel.json</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-xl font-semibold text-gray-900">Manage Links</h3>
-                        <p className="text-gray-600 text-sm mt-1">View and edit all your shortened links</p>
+                    </div>
+                    <div className="p-6 lg:p-8">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {draftLinks.map((link, index) => (
+                          <div key={link.id || index} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200/60">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-gray-900 text-lg mb-2">
+                                  {link.title || 'Untitled Link'}
+                                </h4>
+                                <p className="text-gray-600 text-sm mb-3">
+                                  {link.description || 'No description'}
+                                </p>
+                              </div>
+                              <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
+                                Draft
+                              </span>
+                            </div>
+                            <div className="bg-white/80 rounded-lg p-3 mb-4 border border-yellow-200/40">
+                              <div className="text-sm">
+                                <div className="font-medium text-gray-700 mb-1">Source:</div>
+                                <div className="text-blue-600 font-mono text-sm">{link.source}</div>
+                              </div>
+                              <div className="text-sm mt-2">
+                                <div className="font-medium text-gray-700 mb-1">Destination:</div>
+                                <div className="text-gray-600 truncate">{link.destination}</div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleApproveDraft(link.id!)}
+                                className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg transition-all duration-200 text-sm"
+                              >
+                                <i className="fas fa-check mr-2"></i>Approve & Sync
+                              </button>
+                              <button
+                                onClick={() => handleDelete(index)}
+                                className="px-3 py-2 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 rounded-lg transition-all duration-200"
+                              >
+                                <i className="fas fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
+                )}
+
+                {/* No Drafts Message */}
+                {adminView === 'drafts' && draftLinks.length === 0 && (
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/60 p-12 text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i className="fas fa-inbox text-gray-400 text-xl"></i>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Pending Drafts</h3>
+                    <p className="text-gray-600">All links have been approved and synced to vercel.json</p>
+                  </div>
+                )}
+
+                {/* Admin Links Table */}
+                {adminView === 'all' && (
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-200/60 overflow-hidden">
+                    <div className="px-6 lg:px-8 py-6 border-b border-gray-200/60 bg-gradient-to-r from-gray-50/80 to-white/80">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-green-50/80 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg shadow-green-500/10 border border-green-200/40">
+                          <i className="fas fa-list text-green-500 text-lg"></i>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900">Manage Links</h3>
+                          <p className="text-gray-600 text-sm mt-1">View and edit all your shortened links</p>
+                        </div>
+                      </div>
+                    </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gray-50/80 backdrop-blur-sm">
                         <tr>
-                          <th className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Source</th>
-                          <th className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Destination</th>
-                          <th className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Title</th>
-                          <th className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
-                          <th className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">Actions</th>
+                          <th className="px-6 lg:px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Source</th>
+                          <th className="px-6 lg:px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Destination</th>
+                          <th className="px-6 lg:px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Title</th>
+                          <th className="px-6 lg:px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                          <th className="px-6 lg:px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white/50 backdrop-blur-sm divide-y divide-gray-200/60">
                         {linksData.map((link, index) => (
-                          <tr key={index} className="hover:bg-white/80 transition-all duration-200">
-                            <td className="px-8 py-5 whitespace-nowrap">
+                          <tr key={link.id || index} className="hover:bg-white/80 transition-all duration-200">
+                            <td className="px-6 lg:px-8 py-5 whitespace-nowrap">
                               <code className="bg-gray-100/80 text-gray-800 px-3 py-2 rounded-lg text-sm font-mono border border-gray-200/40">{link.source}</code>
                             </td>
-                            <td className="px-8 py-5">
+                            <td className="px-6 lg:px-8 py-5">
                               <a 
                                 href={link.destination} 
                                 target="_blank" 
@@ -517,20 +685,47 @@ export default function URLShortener() {
                                 {link.destination.length > 40 ? `${link.destination.substring(0, 40)}...` : link.destination}
                               </a>
                             </td>
-                            <td className="px-8 py-5 text-sm text-gray-900 font-medium">{link.title || '-'}</td>
-                            <td className="px-8 py-5 text-sm text-gray-600">{link.description || '-'}</td>
-                            <td className="px-8 py-5 whitespace-nowrap">
+                            <td className="px-6 lg:px-8 py-5 text-sm text-gray-900 font-medium">
+                              <div>
+                                <div className="font-medium">{link.title || 'Untitled'}</div>
+                                {link.description && <div className="text-gray-500 text-xs mt-1">{link.description}</div>}
+                              </div>
+                            </td>
+                            <td className="px-6 lg:px-8 py-5 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                                link.status === 'synced' ? 'bg-green-100 text-green-700' :
+                                link.status === 'published' ? 'bg-blue-100 text-blue-700' :
+                                'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                <i className={`mr-1 ${
+                                  link.status === 'synced' ? 'fas fa-check' :
+                                  link.status === 'published' ? 'fas fa-clock' :
+                                  'fas fa-hourglass-half'
+                                }`}></i>
+                                {link.status || 'draft'}
+                              </span>
+                            </td>
+                            <td className="px-6 lg:px-8 py-5 whitespace-nowrap">
                               <div className="flex space-x-2">
+                                {link.status === 'draft' && (
+                                  <button
+                                    onClick={() => handleApproveDraft(link.id!)}
+                                    className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50/80 rounded-lg transition-all duration-200 text-sm"
+                                    title="Approve & Sync"
+                                  >
+                                    <i className="fas fa-check"></i>
+                                  </button>
+                                )}
                                 <button 
                                   onClick={() => handleEdit(index)}
-                                  className="p-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50/80 rounded-xl transition-all duration-200 shadow-sm" 
+                                  className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50/80 rounded-lg transition-all duration-200" 
                                   title="Edit"
                                 >
                                   <i className="fas fa-edit"></i>
                                 </button>
                                 <button 
                                   onClick={() => handleDelete(index)}
-                                  className="p-3 text-red-600 hover:text-red-700 hover:bg-red-50/80 rounded-xl transition-all duration-200 shadow-sm" 
+                                  className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50/80 rounded-lg transition-all duration-200" 
                                   title="Delete"
                                 >
                                   <i className="fas fa-trash"></i>
@@ -542,7 +737,8 @@ export default function URLShortener() {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
