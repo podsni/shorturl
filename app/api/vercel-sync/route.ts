@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllLinks } from '@/lib/db';
+import { getAllLinks, createLink } from '@/lib/db';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -67,6 +67,69 @@ export async function POST() {
     console.error('Update error:', error);
     return NextResponse.json({
       error: 'Failed to update vercel.json',
+      details: error instanceof Error ? error.message : 'Unknown error'  
+    }, { status: 500 });
+  }
+}
+
+// Import data dari vercel.json ke database
+export async function PUT() {
+  try {
+    // Read current vercel.json
+    const vercelPath = path.join(process.cwd(), 'vercel.json');
+    const vercelContent = await fs.readFile(vercelPath, 'utf-8');
+    const vercelConfig = JSON.parse(vercelContent);
+    
+    if (!vercelConfig.redirects || !Array.isArray(vercelConfig.redirects)) {
+      return NextResponse.json({ error: 'No redirects found in vercel.json' }, { status: 400 });
+    }
+    
+    // Get existing links from database
+    const existingLinks = await getAllLinks();
+    const existingSources = existingLinks.map(link => link.source);
+    
+    let importedCount = 0;
+    let skippedCount = 0;
+    const errors = [];
+    
+    // Import each redirect that doesn't exist in database
+    for (const redirect of vercelConfig.redirects) {
+      if (!redirect.source || !redirect.destination) {
+        errors.push(`Invalid redirect: missing source or destination`);
+        continue;
+      }
+      
+      // Skip if already exists in database
+      if (existingSources.includes(redirect.source)) {
+        skippedCount++;
+        continue;
+      }
+      
+      try {
+        await createLink({
+          source: redirect.source,
+          destination: redirect.destination,
+          title: `Imported from vercel.json: ${redirect.source}`,
+          description: `Auto-imported redirect to ${redirect.destination}`
+        });
+        importedCount++;
+      } catch (error) {
+        errors.push(`Failed to import ${redirect.source}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    
+    return NextResponse.json({
+      message: 'Import from vercel.json completed',
+      imported: importedCount,
+      skipped: skippedCount,
+      errors: errors.length > 0 ? errors : undefined,
+      note: 'Existing links in database were preserved, only new ones were imported'
+    });
+    
+  } catch (error) {
+    console.error('Import error:', error);
+    return NextResponse.json({
+      error: 'Failed to import from vercel.json',
       details: error instanceof Error ? error.message : 'Unknown error'  
     }, { status: 500 });
   }

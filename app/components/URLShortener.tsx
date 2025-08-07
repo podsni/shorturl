@@ -43,27 +43,9 @@ export default function URLShortener() {
     setToast({ message, type });
   };
 
-  const syncToVercel = async () => {
-    try {
-      const response = await fetch('/api/vercel-sync', {
-        method: 'POST'
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        showToast(`Vercel config updated! ${result.redirectsCount} redirects synced. Please redeploy.`, 'success');
-      } else {
-        showToast(result.error || 'Failed to sync to Vercel', 'error');
-      }
-    } catch (error) {
-      showToast('Error syncing to Vercel', 'error');
-    }
-  };
-
   const syncWithGitHub = async () => {
     try {
-      showToast('Triggering GitHub Action to sync database to vercel.json...', 'info');
+      showToast('Triggering GitHub Action to sync vercel.json...', 'info');
       
       const response = await fetch('/api/github-sync', {
         method: 'PUT'
@@ -72,7 +54,7 @@ export default function URLShortener() {
       const result = await response.json();
       
       if (response.ok) {
-        showToast('🚀 GitHub Action triggered! Database will sync to vercel.json automatically.', 'success');
+        showToast('🚀 GitHub Action triggered! vercel.json will be committed automatically.', 'success');
       } else {
         showToast(result.error || 'Failed to trigger GitHub sync', 'error');
       }
@@ -83,14 +65,15 @@ export default function URLShortener() {
 
   const loadLinks = async () => {
     try {
-      const response = await fetch('/api/links');
-      if (!response.ok) throw new Error('Failed to fetch links');
+      // Load directly from vercel.json for simple URL shortener
+      const response = await fetch('/api/vercel-redirects');
+      if (!response.ok) throw new Error('Failed to fetch redirects from vercel.json');
       
       const data = await response.json();
       setLinksData(data.redirects || []);
     } catch (error) {
-      console.error('Error loading links:', error);
-      showToast('Error loading links', 'error');
+      console.error('Error loading redirects:', error);
+      showToast('Error loading redirects from vercel.json', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -129,65 +112,40 @@ export default function URLShortener() {
     }
 
     try {
-      const url = editingIndex !== null ? `/api/links/${editingIndex}` : '/api/links';
-      const method = editingIndex !== null ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
+      // Add new redirect to vercel.json
+      const response = await fetch('/api/vercel-redirects', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          source: formData.source,
+          destination: formData.destination,
+          permanent: false // Always use temporary redirects (307)
+        })
       });
 
       const result = await response.json();
       
       if (response.ok) {
-        showToast(editingIndex !== null ? 'Link updated successfully' : 'Link added successfully', 'success');
+        showToast('Redirect added to vercel.json successfully! Deploy to activate.', 'success');
         await loadLinks();
         setShowForm(false);
         setEditingIndex(null);
         setFormData({ source: '', destination: '', title: '', description: '' });
       } else {
-        showToast(result.error || 'Error saving link', 'error');
+        showToast(result.error || 'Error adding redirect', 'error');
       }
     } catch (error) {
-      showToast('Error saving link', 'error');
+      showToast('Error adding redirect', 'error');
     }
   };
 
+  // Note: Edit/Delete disabled for vercel.json - direct file editing required
   const handleEdit = (index: number) => {
-    const link = linksData[index];
-    setFormData({
-      source: link.source,
-      destination: link.destination,
-      title: link.title || '',
-      description: link.description || ''
-    });
-    setEditingIndex(index);
-    setShowForm(true);
+    showToast('Edit disabled: Please modify vercel.json directly', 'info');
   };
 
   const handleDelete = async (index: number) => {
-    const link = linksData[index];
-    if (!confirm(`Are you sure you want to delete the link "${link.source}"?`)) {
-      return;
-    }
-
-    try {
-      const linkId = link.id || index; // Use database ID if available, fallback to index
-      const response = await fetch(`/api/links/${linkId}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        showToast('Link deleted successfully', 'success');
-        await loadLinks();
-      } else {
-        const result = await response.json();
-        showToast(result.error || 'Error deleting link', 'error');
-      }
-    } catch (error) {
-      showToast('Error deleting link', 'error');
-    }
+    showToast('Delete disabled: Please modify vercel.json directly', 'info');
   };
 
   const copyToClipboard = async (text: string) => {
@@ -276,13 +234,13 @@ export default function URLShortener() {
             {/* Hero Section */}
             <div className="text-center mb-16">
               <h1 className="text-5xl font-bold text-gray-900 mb-6 tracking-tight">
-                URL Shortener
+                Simple URL Shortener
               </h1>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                Clean and simple URL management for everyone.
+                Create simple URL redirects using Vercel's native redirect system.
               </p>
               <p className="text-lg text-gray-500 mt-3 max-w-xl mx-auto">
-                Create, manage, and share your links beautifully.
+                Powered by vercel.json - no database required.
               </p>
             </div>
 
@@ -369,12 +327,6 @@ export default function URLShortener() {
                     <i className="fab fa-github mr-2"></i>GitHub Sync
                   </button>
                   <button 
-                    onClick={syncToVercel}
-                    className="inline-flex items-center px-5 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-200 focus:ring-2 focus:ring-purple-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
-                  >
-                    <i className="fas fa-sync-alt mr-2"></i>Vercel Sync
-                  </button>
-                  <button 
                     onClick={() => {
                       setShowForm(true);
                       setEditingIndex(null);
@@ -382,7 +334,7 @@ export default function URLShortener() {
                     }}
                     className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 focus:ring-2 focus:ring-green-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
                   >
-                    <i className="fas fa-plus mr-2"></i>Add New Link
+                    <i className="fas fa-plus mr-2"></i>Add New Redirect
                   </button>
                 </div>
               )}
@@ -431,7 +383,7 @@ export default function URLShortener() {
                         </div>
                         <div>
                           <h3 className="text-xl font-semibold text-gray-900">
-                            {editingIndex !== null ? 'Edit Link' : 'Add New Link'}
+                            Add New Vercel Redirect
                           </h3>
                           <p className="text-gray-600 text-sm mt-1">
                             {editingIndex !== null ? 'Update the link details below' : 'Create a new shortened link'}
