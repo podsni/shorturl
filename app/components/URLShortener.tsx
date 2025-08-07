@@ -193,35 +193,35 @@ export default function URLShortener() {
   return (
     <div>
       {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <nav className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shadow-sm">
                 <i className="fas fa-link text-white text-sm"></i>
               </div>
-              <h1 className="text-lg font-semibold text-gray-900">Shortener</h1>
+              <h1 className="text-xl font-semibold text-gray-800">Shortener</h1>
             </div>
-            <div className="flex space-x-1">
+            <div className="flex space-x-2">
               <button 
                 onClick={() => setCurrentView('home')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 ${
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                   currentView === 'home'
-                    ? 'text-blue-600 bg-blue-50'
-                    : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'
+                    ? 'text-blue-600 bg-blue-50 shadow-sm'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
                 }`}
               >
-                Home
+                <i className="fas fa-home mr-2"></i>Home
               </button>
               <button 
                 onClick={() => setCurrentView('admin')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 ${
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                   currentView === 'admin'
-                    ? 'text-blue-600 bg-blue-50'
-                    : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'
+                    ? 'text-blue-600 bg-blue-50 shadow-sm'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
                 }`}
               >
-                Admin
+                <i className="fas fa-cog mr-2"></i>Admin
               </button>
             </div>
           </div>
@@ -229,86 +229,86 @@ export default function URLShortener() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentView === 'home' ? (
           <div className="max-w-4xl mx-auto">
             {/* Hero Section */}
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-50 border border-blue-200 rounded-xl mb-4">
-                <i className="fas fa-link text-blue-600 text-lg"></i>
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mb-6 shadow-lg">
+                <i className="fas fa-link text-white text-xl"></i>
               </div>
-              <h1 className="text-3xl font-semibold text-gray-900 mb-3">URL Shortener</h1>
-              <p className="text-gray-600 max-w-xl mx-auto">Clean and simple URL management</p>
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">URL Shortener</h1>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">Clean and simple URL management for everyone</p>
             </div>
 
             {/* Search Section */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <i className="fas fa-search text-gray-400 text-sm"></i>
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <i className="fas fa-search text-gray-400"></i>
                 </div>
                 <input 
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 text-sm" 
-                  placeholder="Search links..."
+                  className="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base placeholder-gray-500" 
+                  placeholder="Search links, titles, or descriptions..."
                 />
               </div>
             </div>
 
             {/* Links Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredLinks.map((link, index) => (
-                <div key={index} className="bg-white rounded-lg border border-gray-200 p-4 hover:border-blue-200 transition-all duration-200 group">
+                <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 transition-all duration-300 group">
                   {link.title && (
-                    <h3 className="text-base font-medium text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-200">
                       {link.title}
                     </h3>
                   )}
                   {link.description && (
-                    <p className="text-gray-600 text-sm mb-3">
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
                       {link.description}
                     </p>
                   )}
-                  <div className="bg-gray-50 rounded-md p-2 mb-3 border border-gray-100">
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-100">
                     <a 
                       href={link.destination} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700 font-mono text-xs break-all transition-colors duration-200"
+                      className="text-blue-600 hover:text-blue-700 font-mono text-sm break-all transition-colors duration-200"
                     >
                       {window.location.origin}{link.source}
                     </a>
                   </div>
                   <button 
                     onClick={() => copyToClipboard(`${window.location.origin}${link.source}`)}
-                    className="w-full flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200 focus:ring-1 focus:ring-blue-500 focus:ring-offset-1"
+                    className="w-full flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    <i className="fas fa-copy mr-1.5 text-xs"></i>Copy
+                    <i className="fas fa-copy mr-2"></i>Copy Link
                   </button>
                 </div>
               ))}
             </div>
 
             {filteredLinks.length === 0 && (
-              <div className="text-center py-16">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-search text-gray-400 text-xl"></i>
+              <div className="text-center py-20">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                  <i className="fas fa-search text-gray-400 text-2xl"></i>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No links found</h3>
-                <p className="text-gray-500">Try adjusting your search terms</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">No links found</h3>
+                <p className="text-gray-600 text-lg">Try adjusting your search terms or add some links in the admin panel</p>
               </div>
             )}
           </div>
         ) : (
           <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-              <div className="flex items-center space-x-3 mb-4 sm:mb-0">
-                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-                  <i className="fas fa-cog text-white"></i>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-10">
+              <div className="flex items-center space-x-4 mb-6 sm:mb-0">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <i className="fas fa-cog text-white text-lg"></i>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Admin Panel</h2>
+                <h2 className="text-3xl font-bold text-gray-900">Admin Panel</h2>
               </div>
               {isAdminAuthenticated && (
                 <button 
@@ -317,7 +317,7 @@ export default function URLShortener() {
                     setEditingIndex(null);
                     setFormData({ source: '', destination: '', title: '', description: '' });
                   }}
-                  className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-xl transition-colors duration-200 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                  className="inline-flex items-center px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl shadow-lg transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 hover:shadow-xl"
                 >
                   <i className="fas fa-plus mr-2"></i>Add New Link
                 </button>
