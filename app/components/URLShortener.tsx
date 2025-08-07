@@ -65,15 +65,15 @@ export default function URLShortener() {
 
   const loadLinks = async () => {
     try {
-      // Load directly from vercel.json for simple URL shortener
-      const response = await fetch('/api/vercel-redirects');
-      if (!response.ok) throw new Error('Failed to fetch redirects from vercel.json');
+      // Load from database (will sync to vercel.json via GitHub workflow)
+      const response = await fetch('/api/links');
+      if (!response.ok) throw new Error('Failed to fetch links from database');
       
       const data = await response.json();
       setLinksData(data.redirects || []);
     } catch (error) {
-      console.error('Error loading redirects:', error);
-      showToast('Error loading redirects from vercel.json', 'error');
+      console.error('Error loading links:', error);
+      showToast('Error loading links from database', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -112,21 +112,22 @@ export default function URLShortener() {
     }
 
     try {
-      // Add new redirect to vercel.json
-      const response = await fetch('/api/vercel-redirects', {
+      // Add new redirect to database (will auto-sync to vercel.json via GitHub workflow)
+      const response = await fetch('/api/links', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           source: formData.source,
           destination: formData.destination,
-          permanent: false // Always use temporary redirects (307)
+          title: formData.title || undefined,
+          description: formData.description || undefined
         })
       });
 
       const result = await response.json();
       
       if (response.ok) {
-        showToast('Redirect added to vercel.json successfully! Deploy to activate.', 'success');
+        showToast('Redirect added to database! GitHub workflow will sync to vercel.json automatically.', 'success');
         await loadLinks();
         setShowForm(false);
         setEditingIndex(null);
@@ -139,13 +140,13 @@ export default function URLShortener() {
     }
   };
 
-  // Note: Edit/Delete disabled for vercel.json - direct file editing required
+  // Note: Edit/Delete functionality can be enabled when using database
   const handleEdit = (index: number) => {
-    showToast('Edit disabled: Please modify vercel.json directly', 'info');
+    showToast('Edit functionality: Can be implemented for database records', 'info');
   };
 
   const handleDelete = async (index: number) => {
-    showToast('Delete disabled: Please modify vercel.json directly', 'info');
+    showToast('Delete functionality: Can be implemented for database records', 'info');
   };
 
   const copyToClipboard = async (text: string) => {
@@ -237,10 +238,10 @@ export default function URLShortener() {
                 Simple URL Shortener
               </h1>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                Create simple URL redirects using Vercel's native redirect system.
+                Create URL redirects with database storage and auto-sync to Vercel.
               </p>
               <p className="text-lg text-gray-500 mt-3 max-w-xl mx-auto">
-                Powered by vercel.json - no database required.
+                Database → GitHub Actions → vercel.json → Vercel CDN
               </p>
             </div>
 
