@@ -58,6 +58,9 @@ async function seedDefaultLinks() {
     if (count === 0) {
       console.log('🌱 Seeding database with default links...');
       
+      // First, import existing links from vercel.json if they exist
+      await importExistingVercelLinks();
+      
       const defaultLinks = [
         {
           source: '/ujicoba',
@@ -82,8 +85,8 @@ async function seedDefaultLinks() {
       for (const link of defaultLinks) {
         try {
           await client.execute({
-            sql: 'INSERT INTO links (source, destination, title, description) VALUES (?, ?, ?, ?)',
-            args: [link.source, link.destination, link.title, link.description]
+            sql: 'INSERT INTO links (source, destination, title, description, status) VALUES (?, ?, ?, ?, ?)',
+            args: [link.source, link.destination, link.title, link.description, 'synced']
           });
           console.log(`✅ Seeded link: ${link.source}`);
         } catch (error) {
@@ -93,6 +96,47 @@ async function seedDefaultLinks() {
     }
   } catch (error) {
     console.error('Error seeding default links:', error);
+  }
+}
+
+// Import existing links from vercel.json and mark as 'synced'
+async function importExistingVercelLinks() {
+  try {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    
+    const vercelPath = path.resolve(process.cwd(), 'vercel.json');
+    
+    try {
+      const vercelContent = await fs.readFile(vercelPath, 'utf8');
+      const vercelConfig = JSON.parse(vercelContent);
+      
+      if (vercelConfig.redirects && Array.isArray(vercelConfig.redirects)) {
+        console.log(`📥 Importing ${vercelConfig.redirects.length} existing redirects from vercel.json...`);
+        
+        for (const redirect of vercelConfig.redirects) {
+          try {
+            await client.execute({
+              sql: 'INSERT OR IGNORE INTO links (source, destination, title, description, status) VALUES (?, ?, ?, ?, ?)',
+              args: [
+                redirect.source,
+                redirect.destination,
+                `Redirect ${redirect.source}`,
+                `Existing redirect from vercel.json to ${redirect.destination}`,
+                'synced' // Mark as already synced since they're in vercel.json
+              ]
+            });
+            console.log(`✅ Imported existing redirect: ${redirect.source} → ${redirect.destination}`);
+          } catch (error) {
+            console.log(`⚠️ Failed to import ${redirect.source}:`, error instanceof Error ? error.message : 'Unknown error');
+          }
+        }
+      }
+    } catch (error) {
+      console.log('📝 No existing vercel.json found or empty, starting fresh');
+    }
+  } catch (error) {
+    console.error('Error importing existing vercel.json links:', error);
   }
 }
 

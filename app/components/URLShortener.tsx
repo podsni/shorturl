@@ -72,16 +72,12 @@ export default function URLShortener() {
 
   const loadLinks = async () => {
     try {
-      // Load only published/synced links for public view
+      // Load published/synced links from public API (already filtered)
       const response = await fetch('/api/links');
       if (!response.ok) throw new Error('Failed to fetch links from database');
       
       const data = await response.json();
-      // Filter only published/synced links for public display
-      const publishedLinks = data.redirects?.filter((link: LinkDisplayData) => 
-        link.status === 'published' || link.status === 'synced'
-      ) || [];
-      setLinksData(publishedLinks);
+      setLinksData(data.redirects || []);
     } catch (error) {
       console.error('Error loading links:', error);
       showToast('Error loading links from database', 'error');

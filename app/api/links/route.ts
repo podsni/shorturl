@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllLinks, createLink, initDatabase } from '@/lib/db';
+import { getPublishedLinks, createLink, initDatabase } from '@/lib/db';
 import { triggerGitHubSync } from '@/lib/github';
 
 // Initialize database on first load
@@ -7,13 +7,17 @@ initDatabase().catch(console.error);
 
 export async function GET() {
   try {
-    const links = await getAllLinks();
+    // Only return published/synced links for public API
+    const links = await getPublishedLinks();
     
     // Transform to match the original API structure
     const response = {
       redirects: links.map(link => ({
+        id: link.id,
         source: link.source,
         destination: link.destination,
+        status: link.status,
+        created_at: link.created_at,
         ...(link.title && { title: link.title }),
         ...(link.description && { description: link.description })
       }))

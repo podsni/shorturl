@@ -118,17 +118,49 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === 'approve') {
-      // Update status to published (ready for sync)
-      const updatedLink = await updateLink(id, {
-        source: '', // Will be fetched from existing record
-        destination: '',
-        status: 'published'
-      });
+      // Simply update status to published (ready for sync)
+      try {
+        const { createClient } = await import('@libsql/client');
+        const client = createClient({
+          url: process.env.TURSO_DATABASE_URL!,
+          authToken: process.env.TURSO_AUTH_TOKEN!
+        });
 
-      return NextResponse.json({
-        message: 'Link approved for sync',
-        link: updatedLink
-      });
+        const result = await client.execute({
+          sql: 'UPDATE links SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING *',
+          args: ['published', id]
+        });
+
+        if (result.rows.length > 0) {
+          const row = result.rows[0];
+          const updatedLink = {
+            id: row.id as number,
+            source: row.source as string,
+            destination: row.destination as string,
+            title: row.title as string | undefined,
+            description: row.description as string | undefined,
+            status: row.status as 'draft' | 'published' | 'synced',
+            created_at: row.created_at as string,
+            updated_at: row.updated_at as string
+          };
+
+          return NextResponse.json({
+            message: 'Link approved for sync',
+            link: updatedLink
+          });
+        } else {
+          return NextResponse.json(
+            { error: 'Link not found' },
+            { status: 404 }
+          );
+        }
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        return NextResponse.json(
+          { error: 'Database error', details: dbError instanceof Error ? dbError.message : 'Unknown error' },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json(

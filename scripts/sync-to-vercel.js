@@ -21,11 +21,11 @@ async function syncDatabaseToVercel() {
       authToken: process.env.TURSO_AUTH_TOKEN,
     });
 
-    // Get all links from database
-    const result = await client.execute('SELECT source, destination FROM links ORDER BY source');
+    // Get only published/synced links from database for sync
+    const result = await client.execute("SELECT source, destination FROM links WHERE status IN ('published', 'synced') ORDER BY source");
     const dbLinks = result.rows;
     
-    console.log(`📊 Found ${dbLinks.length} links in database`);
+    console.log(`📊 Found ${dbLinks.length} published/synced links in database`);
 
     // Read current vercel.json
     const vercelPath = path.join(process.cwd(), 'vercel.json');
@@ -45,6 +45,14 @@ async function syncDatabaseToVercel() {
     
     // Write updated vercel.json
     fs.writeFileSync(vercelPath, JSON.stringify(vercelConfig, null, 2) + '\n');
+    
+    // Update status of published links to 'synced' after successful sync
+    try {
+      await client.execute("UPDATE links SET status = 'synced' WHERE status = 'published'");
+      console.log('📝 Updated published links status to synced');
+    } catch (error) {
+      console.log('⚠️ Warning: Could not update link status:', error.message);
+    }
     
     console.log('✅ Successfully synced database to vercel.json');
     console.log(`📝 Updated ${newRedirects.length} redirects`);
