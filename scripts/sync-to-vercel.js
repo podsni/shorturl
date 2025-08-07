@@ -29,17 +29,19 @@ async function syncDatabaseToVercel() {
 
     // Read current vercel.json
     const vercelPath = path.join(process.cwd(), 'vercel.json');
-    const vercelConfig = JSON.parse(fs.readFileSync(vercelPath, 'utf8'));
     
     // Transform database links to Vercel redirect format
+    // Simple URL shortener: /short-path -> destination
     const newRedirects = dbLinks.map(link => ({
-      source: `/${link.source}`,
-      destination: link.destination,
-      permanent: false
+      source: link.source, // e.g., "/gh", "/react-suspense"
+      destination: link.destination, // e.g., "https://github.com/username"
+      permanent: false // Use 307 temporary redirects for flexibility
     }));
     
-    // Update vercel.json with new redirects
-    vercelConfig.redirects = newRedirects;
+    // Simple Vercel config for URL shortener
+    const vercelConfig = {
+      "redirects": newRedirects
+    };
     
     // Write updated vercel.json
     fs.writeFileSync(vercelPath, JSON.stringify(vercelConfig, null, 2) + '\n');

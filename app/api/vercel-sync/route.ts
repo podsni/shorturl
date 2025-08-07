@@ -8,43 +8,30 @@ export async function GET() {
     // Get all links from database
     const dbLinks = await getAllLinks();
     
-    // Get current static redirects
-    const redirectsPath = path.join(process.cwd(), 'redirects.json');
-    const redirectsContent = await fs.readFile(redirectsPath, 'utf-8');
-    const staticRedirects = JSON.parse(redirectsContent);
+    // Transform database links to Vercel redirects format
+    // Simple URL shortener format: /short-path -> https://destination.com
+    const redirects = dbLinks.map(link => ({
+      source: link.source, // e.g., "/gh", "/react-17-suspence"
+      destination: link.destination, // e.g., "https://github.com/username", "/blog/long-article-title"
+      permanent: false // Use temporary redirects (307) for flexibility
+    }));
     
-    // Combine database links with static redirects
-    const allRedirects = [
-      ...staticRedirects.redirects,
-      ...dbLinks.map(link => ({
-        source: link.source,
-        destination: link.destination,
-        permanent: false
-      }))
-    ];
-    
-    // Remove duplicates (static redirects take priority)
-    const uniqueRedirects = allRedirects.filter((redirect, index, arr) => 
-      arr.findIndex(r => r.source === redirect.source) === index
-    );
-    
-    // Generate new vercel.json content
+    // Simple Vercel config for URL shortener
     const vercelConfig = {
-      "buildCommand": "pnpm build",
-      "devCommand": "pnpm dev", 
-      "installCommand": "pnpm install",
-      "framework": "nextjs",
-      "redirects": uniqueRedirects
+      "redirects": redirects
     };
     
     return NextResponse.json({
-      message: 'Vercel config generated',
-      redirectsCount: uniqueRedirects.length,
+      message: 'Simple URL Shortener config generated',
+      redirectsCount: redirects.length,
       vercelConfig,
       instructions: {
+        about: 'Simple URL Shortener using Vercel redirects',
         step1: 'Copy the vercelConfig to your vercel.json file',
-        step2: 'Deploy with: vercel --prod',
-        step3: 'All redirects will work natively via Vercel'
+        step2: 'Deploy with: vercel --prod', 
+        step3: 'All short URLs will redirect via Vercel (307 temporary redirects)',
+        example: 'Add /gh -> https://github.com/username for easy sharing',
+        note: 'Works with both internal (/blog/article) and external (https://site.com) destinations'
       }
     });
     
@@ -68,9 +55,9 @@ export async function POST() {
       await fs.writeFile(vercelPath, JSON.stringify(data.vercelConfig, null, 2));
       
       return NextResponse.json({
-        message: 'vercel.json updated successfully',
+        message: 'vercel.json updated with simple URL shortener config',
         redirectsCount: data.redirectsCount,
-        note: 'Please redeploy to apply changes'
+        note: 'Redeploy to activate short URLs - each redirect uses 307 status for flexibility'
       });
     }
     

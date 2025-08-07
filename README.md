@@ -1,23 +1,58 @@
-# URL Shortener
+# 🔗 Simple URL Shortener with Vercel
 
-A modern, clean, and minimal URL shortener built with Next.js 15 and Turso database.
+A simple and powerful URL shortener built with Next.js and Vercel redirects. Transform long URLs into short, shareable links using Vercel's native redirect system.
 
-## Features
+## 🚀 How It Works
 
-- 🔗 Clean URL shortening with custom paths
-- 📱 Responsive, minimal design
-- 🛡️ Admin panel with authentication
-- 🗄️ Turso (libSQL) database for persistence
-- ⚡ Built with Next.js 15 and TypeScript
-- 🎨 Tailwind CSS for styling
+This URL shortener leverages **Vercel's redirect feature** to create short URLs without needing a complex backend. When someone visits your short URL, Vercel handles the redirect automatically using `307 Temporary Redirect` status codes.
 
-## Tech Stack
+### Example Usage
 
-- **Frontend**: Next.js 15, React, TypeScript
-- **Database**: Turso (libSQL)
-- **Styling**: Tailwind CSS
-- **Icons**: Font Awesome
-- **Deployment**: Vercel
+Instead of sharing:
+```
+https://someawesomesite.com/blog/working-with-new-suspense-system-in-react-17
+```
+
+You can create and share:
+```
+https://yourdomain.com/react-suspense
+```
+
+## � Features
+
+- **Vercel Native Redirects** - Ultra-fast redirects handled at CDN level
+- **Database Management** - Store and manage links via admin panel
+- **Auto-sync** - GitHub Actions automatically update `vercel.json`
+- **Hybrid System** - Database + Static + Native redirects for reliability
+- **Admin Panel** - Web interface to manage all your short links
+- **External & Internal** - Redirect to any URL (internal pages or external sites)
+
+## 🛠 Configuration
+
+The magic happens in `vercel.json`:
+
+```json
+{
+  "redirects": [
+    {
+      "source": "/gh",
+      "destination": "https://github.com/username",
+      "permanent": false
+    },
+    {
+      "source": "/blog-post",
+      "destination": "/blog/very-long-article-title-here",
+      "permanent": false
+    }
+  ]
+}
+```
+
+### Redirect Options
+
+- **source**: The short path (e.g., `/gh`, `/docs`)
+- **destination**: Target URL (internal or external)
+- **permanent**: `false` = 307 (temporary), `true` = 308 (permanent)
 
 ## Getting Started
 
