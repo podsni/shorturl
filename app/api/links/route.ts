@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllLinks, createLink, initDatabase } from '@/lib/db';
+import { triggerGitHubSync } from '@/lib/github';
 
 // Initialize database on first load
 initDatabase().catch(console.error);
@@ -56,6 +57,11 @@ export async function POST(request: NextRequest) {
       destination: formattedDestination,
       title: title || undefined,
       description: description || undefined
+    });
+
+    // Trigger GitHub Action untuk sync ke vercel.json
+    triggerGitHubSync().catch(error => {
+      console.warn('Failed to trigger GitHub sync:', error);
     });
 
     return NextResponse.json(

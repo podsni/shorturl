@@ -26,7 +26,7 @@ export default function URLShortener() {
     title: '',
     description: ''
   });
-  const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
 
   useEffect(() => {
     loadLinks();
@@ -39,7 +39,7 @@ export default function URLShortener() {
     }
   }, [toast]);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
   };
 
@@ -58,6 +58,26 @@ export default function URLShortener() {
       }
     } catch (error) {
       showToast('Error syncing to Vercel', 'error');
+    }
+  };
+
+  const syncWithGitHub = async () => {
+    try {
+      showToast('Triggering GitHub Action to sync database to vercel.json...', 'info');
+      
+      const response = await fetch('/api/github-sync', {
+        method: 'PUT'
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        showToast('🚀 GitHub Action triggered! Database will sync to vercel.json automatically.', 'success');
+      } else {
+        showToast(result.error || 'Failed to trigger GitHub sync', 'error');
+      }
+    } catch (error) {
+      showToast('Error triggering GitHub sync', 'error');
     }
   };
 
@@ -341,12 +361,18 @@ export default function URLShortener() {
                 </div>
               </div>
               {isAdminAuthenticated && (
-                <div className="flex space-x-4">
+                <div className="flex flex-wrap gap-3">
+                  <button 
+                    onClick={syncWithGitHub}
+                    className="inline-flex items-center px-5 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 transition-all duration-200 focus:ring-2 focus:ring-orange-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
+                  >
+                    <i className="fab fa-github mr-2"></i>GitHub Sync
+                  </button>
                   <button 
                     onClick={syncToVercel}
-                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-200 focus:ring-2 focus:ring-purple-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
+                    className="inline-flex items-center px-5 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-200 focus:ring-2 focus:ring-purple-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
                   >
-                    <i className="fas fa-sync-alt mr-2"></i>Sync to Vercel
+                    <i className="fas fa-sync-alt mr-2"></i>Vercel Sync
                   </button>
                   <button 
                     onClick={() => {
@@ -354,7 +380,7 @@ export default function URLShortener() {
                       setEditingIndex(null);
                       setFormData({ source: '', destination: '', title: '', description: '' });
                     }}
-                    className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 focus:ring-2 focus:ring-green-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 focus:ring-2 focus:ring-green-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
                   >
                     <i className="fas fa-plus mr-2"></i>Add New Link
                   </button>

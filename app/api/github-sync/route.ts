@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createLink, getAllLinks, deleteLink } from '@/lib/db';
+import { triggerGitHubSync } from '@/lib/github';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = 'localan/shortener'; // Replace with your repo
@@ -87,5 +88,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       error: 'Webhook processing failed'
     }, { status: 500 });
+  }
+}
+
+// Manual trigger GitHub Action untuk sync ke vercel.json
+export async function PUT() {
+  try {
+    console.log('🔄 Manual sync to vercel.json triggered via API');
+    
+    const success = await triggerGitHubSync();
+    
+    if (success) {
+      return NextResponse.json({ 
+        message: 'GitHub Action triggered successfully - will sync database to vercel.json',
+        status: 'success'
+      });
+    } else {
+      return NextResponse.json({ 
+        message: 'Failed to trigger GitHub Action',
+        status: 'error'
+      }, { status: 500 });
+    }
+  } catch (error) {
+    console.error('Error triggering manual sync:', error);
+    return NextResponse.json(
+      { 
+        error: 'Internal server error', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
+      { status: 500 }
+    );
   }
 }

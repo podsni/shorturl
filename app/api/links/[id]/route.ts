@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateLink, deleteLink, getAllLinks } from '@/lib/db';
+import { triggerGitHubSync } from '@/lib/github';
 
 export async function PUT(
   request: NextRequest,
@@ -41,6 +42,11 @@ export async function PUT(
       destination: formattedDestination,
       title: title || undefined,
       description: description || undefined
+    });
+
+    // Trigger GitHub Action untuk sync ke vercel.json
+    triggerGitHubSync().catch(error => {
+      console.warn('Failed to trigger GitHub sync:', error);
     });
 
     return NextResponse.json({
@@ -100,6 +106,11 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // Trigger GitHub Action untuk sync ke vercel.json
+    triggerGitHubSync().catch(error => {
+      console.warn('Failed to trigger GitHub sync:', error);
+    });
 
     return NextResponse.json({
       message: 'Link deleted successfully'
