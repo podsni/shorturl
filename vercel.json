@@ -4,6 +4,11 @@
       "source": "",
       "destination": "",
       "permanent": false
+    },
+    {
+      "source": "/edit",
+      "destination": "https://github.com/bangundwir/shortener-url",
+      "permanent": false
     }
   ]
 }
