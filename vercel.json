@@ -1,6 +1,11 @@
 {
   "redirects": [
     {
+      "source": "",
+      "destination": "",
+      "permanent": false
+    },
+    {
       "source": "/config",
       "destination": "https://raw.githubusercontent.com/dwirx/NixOs/master/NixOs/configuration.nix",
       "permanent": false
@@ -28,11 +33,6 @@
     {
       "source": "/pris",
       "destination": "https://www.prisma.io/postgres",
-      "permanent": false
-    },
-    {
-      "source": "/t3",
-      "destination": "https://t3.chat/",
       "permanent": false
     }
   ]
