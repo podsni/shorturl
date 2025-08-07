@@ -6,6 +6,11 @@
       "permanent": false
     },
     {
+      "source": "/cursor",
+      "destination": "https://cursor.com/dashboard?tab=usage",
+      "permanent": false
+    },
+    {
       "source": "/edit",
       "destination": "https://github.com/bangundwir/shortener-url",
       "permanent": false
