@@ -43,6 +43,24 @@ export default function URLShortener() {
     setToast({ message, type });
   };
 
+  const syncToVercel = async () => {
+    try {
+      const response = await fetch('/api/vercel-sync', {
+        method: 'POST'
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        showToast(`Vercel config updated! ${result.redirectsCount} redirects synced. Please redeploy.`, 'success');
+      } else {
+        showToast(result.error || 'Failed to sync to Vercel', 'error');
+      }
+    } catch (error) {
+      showToast('Error syncing to Vercel', 'error');
+    }
+  };
+
   const loadLinks = async () => {
     try {
       const response = await fetch('/api/links');
@@ -237,15 +255,14 @@ export default function URLShortener() {
           <div className="max-w-5xl mx-auto">
             {/* Hero Section */}
             <div className="text-center mb-16">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl mb-8 shadow-xl shadow-blue-500/25">
-                <i className="fas fa-link text-white text-2xl"></i>
-              </div>
               <h1 className="text-5xl font-bold text-gray-900 mb-6 tracking-tight">
                 URL Shortener
               </h1>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                Clean and simple URL management for everyone. 
-                <span className="block mt-2 text-lg text-gray-500">Create, manage, and share your links beautifully.</span>
+                Clean and simple URL management for everyone.
+              </p>
+              <p className="text-lg text-gray-500 mt-3 max-w-xl mx-auto">
+                Create, manage, and share your links beautifully.
               </p>
             </div>
 
@@ -324,16 +341,24 @@ export default function URLShortener() {
                 </div>
               </div>
               {isAdminAuthenticated && (
-                <button 
-                  onClick={() => {
-                    setShowForm(true);
-                    setEditingIndex(null);
-                    setFormData({ source: '', destination: '', title: '', description: '' });
-                  }}
-                  className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 focus:ring-2 focus:ring-green-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
-                >
-                  <i className="fas fa-plus mr-2"></i>Add New Link
-                </button>
+                <div className="flex space-x-4">
+                  <button 
+                    onClick={syncToVercel}
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-200 focus:ring-2 focus:ring-purple-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
+                  >
+                    <i className="fas fa-sync-alt mr-2"></i>Sync to Vercel
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setShowForm(true);
+                      setEditingIndex(null);
+                      setFormData({ source: '', destination: '', title: '', description: '' });
+                    }}
+                    className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 focus:ring-2 focus:ring-green-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
+                  >
+                    <i className="fas fa-plus mr-2"></i>Add New Link
+                  </button>
+                </div>
               )}
             </div>
 

@@ -2,5 +2,42 @@
   "buildCommand": "pnpm build",
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "redirects": [
+    {
+      "source": "/edit",
+      "destination": "https://github.com/bangundwir/shortener-url",
+      "permanent": false
+    },
+    {
+      "source": "/nixos",
+      "destination": "https://gist.githubusercontent.com/nuxeh/35fb0eca2af4b305052ca11fe2521159/raw//nixinst.sh",
+      "permanent": false
+    },
+    {
+      "source": "/config",
+      "destination": "https://raw.githubusercontent.com/dwirx/NixOs/master/NixOs/configuration.nix",
+      "permanent": false
+    },
+    {
+      "source": "/ujicoba",
+      "destination": "https://google.com",
+      "permanent": false
+    },
+    {
+      "source": "/google",
+      "destination": "https://google.com",
+      "permanent": false
+    },
+    {
+      "source": "/github",
+      "destination": "https://github.com",
+      "permanent": false
+    },
+    {
+      "source": "/gh",
+      "destination": "https://github.com/localan",
+      "permanent": false
+    }
+  ]
 }

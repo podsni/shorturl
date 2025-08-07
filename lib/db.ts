@@ -30,9 +30,58 @@ export async function initDatabase() {
     `);
     
     console.log('Database initialized successfully');
+    
+    // Seed database with default links if empty
+    await seedDefaultLinks();
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
+  }
+}
+
+async function seedDefaultLinks() {
+  try {
+    const result = await client.execute('SELECT COUNT(*) as count FROM links');
+    const count = result.rows[0].count as number;
+    
+    if (count === 0) {
+      console.log('🌱 Seeding database with default links...');
+      
+      const defaultLinks = [
+        {
+          source: '/ujicoba',
+          destination: 'https://google.com',
+          title: 'Ujicoba Link',
+          description: 'Default test link'
+        },
+        {
+          source: '/google',
+          destination: 'https://google.com',
+          title: 'Google',
+          description: 'Quick link to Google'
+        },
+        {
+          source: '/github',
+          destination: 'https://github.com',
+          title: 'GitHub',
+          description: 'Quick link to GitHub'
+        }
+      ];
+      
+      for (const link of defaultLinks) {
+        try {
+          await client.execute({
+            sql: 'INSERT INTO links (source, destination, title, description) VALUES (?, ?, ?, ?)',
+            args: [link.source, link.destination, link.title, link.description]
+          });
+          console.log(`✅ Seeded link: ${link.source}`);
+        } catch (error) {
+          console.log(`⚠️ Failed to seed ${link.source}:`, error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error seeding default links:', error);
   }
 }
 
@@ -128,14 +177,21 @@ export async function deleteLink(id: number): Promise<boolean> {
 
 export async function getLinkBySource(source: string): Promise<LinkData | null> {
   try {
+    console.log('Looking for link with source:', source);
+    
     const result = await client.execute({
       sql: 'SELECT * FROM links WHERE source = ?',
       args: [source]
     });
     
+    console.log('Database query result:', { 
+      rowCount: result.rows.length, 
+      searchedSource: source 
+    });
+    
     if (result.rows.length > 0) {
       const row = result.rows[0];
-      return {
+      const linkData = {
         id: row.id as number,
         source: row.source as string,
         destination: row.destination as string,
@@ -144,11 +200,15 @@ export async function getLinkBySource(source: string): Promise<LinkData | null> 
         created_at: row.created_at as string,
         updated_at: row.updated_at as string
       };
+      
+      console.log('Found link:', linkData);
+      return linkData;
     }
     
+    console.log('No link found for source:', source);
     return null;
   } catch (error) {
-    console.error('Error fetching link by source:', error);
+    console.error('Error fetching link by source:', error, 'Source:', source);
     throw error;
   }
 }
