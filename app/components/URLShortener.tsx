@@ -24,6 +24,7 @@ export default function URLShortener() {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     source: '',
     destination: '',
@@ -142,40 +143,77 @@ export default function URLShortener() {
     }
 
     try {
-      // Add new redirect to database as draft (admin approval needed)
-      const endpoint = isAdminAuthenticated ? '/api/admin/links' : '/api/links';
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: formData.source,
-          destination: formData.destination,
-          title: formData.title || undefined,
-          description: formData.description || undefined
-        })
-      });
+      // Check if we're editing an existing link
+      if (editingId) {
+        // Update existing link
+        const response = await fetch(`/api/admin/links/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source: formData.source,
+            destination: formData.destination,
+            title: formData.title || undefined,
+            description: formData.description || undefined
+          })
+        });
 
-      const result = await response.json();
-      
-      if (response.ok) {
-        const message = isAdminAuthenticated 
-          ? 'Redirect saved as draft - approve to sync to vercel.json!'
-          : 'Redirect submitted for admin approval!';
-        showToast(message, 'success');
+        const result = await response.json();
         
-        await loadLinks();
-        if (isAdminAuthenticated) {
-          await loadAdminLinks();
+        if (response.ok) {
+          showToast('Link updated successfully!', 'success');
+          
+          await loadLinks();
+          if (isAdminAuthenticated) {
+            await loadAdminLinks();
+          }
+          
+          setShowForm(false);
+          setEditingIndex(null);
+          setEditingId(null);
+          setFormData({ source: '', destination: '', title: '', description: '' });
+          
+          // Trigger GitHub sync to update vercel.json
+          await syncWithGitHub();
+        } else {
+          showToast(result.error || 'Error updating link', 'error');
         }
-        
-        setShowForm(false);
-        setEditingIndex(null);
-        setFormData({ source: '', destination: '', title: '', description: '' });
       } else {
-        showToast(result.error || 'Error adding redirect', 'error');
+        // Add new redirect to database as draft (admin approval needed)
+        const endpoint = isAdminAuthenticated ? '/api/admin/links' : '/api/links';
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source: formData.source,
+            destination: formData.destination,
+            title: formData.title || undefined,
+            description: formData.description || undefined
+          })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          const message = isAdminAuthenticated 
+            ? 'Redirect saved as draft - approve to sync to vercel.json!'
+            : 'Redirect submitted for admin approval!';
+          showToast(message, 'success');
+          
+          await loadLinks();
+          if (isAdminAuthenticated) {
+            await loadAdminLinks();
+          }
+          
+          setShowForm(false);
+          setEditingIndex(null);
+          setEditingId(null);
+          setFormData({ source: '', destination: '', title: '', description: '' });
+        } else {
+          showToast(result.error || 'Error adding redirect', 'error');
+        }
       }
     } catch (error) {
-      showToast('Error adding redirect', 'error');
+      showToast(editingId ? 'Error updating redirect' : 'Error adding redirect', 'error');
     }
   };
 
@@ -206,13 +244,58 @@ export default function URLShortener() {
     }
   };
 
-  // Note: Edit/Delete functionality can be enabled when using database
+  // Edit and Delete functionality for database records
   const handleEdit = (index: number) => {
-    showToast('Edit functionality: Can be implemented for database records', 'info');
+    const link = linksData[index];
+    if (link) {
+      setFormData({
+        source: link.source,
+        destination: link.destination,
+        title: link.title || '',
+        description: link.description || ''
+      });
+      setEditingIndex(index);
+      setEditingId(link.id || null);
+      setShowForm(true);
+    }
   };
 
   const handleDelete = async (index: number) => {
-    showToast('Delete functionality: Can be implemented for database records', 'info');
+    const link = linksData[index];
+    if (!link || !link.id) {
+      showToast('Cannot delete: Link ID not found', 'error');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this link? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/links/${link.id}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        showToast('Link deleted successfully', 'success');
+        // Remove from local state
+        const updatedLinks = linksData.filter((_, i) => i !== index);
+        setLinksData(updatedLinks);
+        
+        // Reload admin links to update counts
+        await loadAdminLinks();
+        
+        // Trigger GitHub sync to update vercel.json
+        await syncWithGitHub();
+      } else {
+        showToast(result.error || 'Error deleting link', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting link:', error);
+      showToast('Error deleting link', 'error');
+    }
   };
 
   const copyToClipboard = async (text: string) => {
@@ -330,27 +413,52 @@ export default function URLShortener() {
             {/* Links Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 px-4 sm:px-0">
               {filteredLinks.map((link, index) => (
-                <div key={index} className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-200/60 p-6 lg:p-8 hover:shadow-xl hover:shadow-gray-300/50 hover:border-blue-300/60 hover:-translate-y-1 transition-all duration-300">
+                <div key={link.id || index} className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-200/60 p-6 lg:p-8 hover:shadow-xl hover:shadow-gray-300/50 hover:border-blue-300/60 hover:-translate-y-1 transition-all duration-300">
+                  <div className="flex items-start justify-between mb-4">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                      link.status === 'synced' ? 'bg-green-100 text-green-700' :
+                      link.status === 'published' ? 'bg-blue-100 text-blue-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      <i className={`mr-1 ${
+                        link.status === 'synced' ? 'fas fa-check' :
+                        link.status === 'published' ? 'fas fa-clock' :
+                        'fas fa-hourglass-half'
+                      }`}></i>
+                      {link.status === 'synced' ? 'Live' : link.status || 'Draft'}
+                    </span>
+                  </div>
+                  
                   {link.title && (
                     <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors duration-200 leading-tight">
                       {link.title}
                     </h3>
                   )}
+                  
                   {link.description && (
                     <p className="text-gray-600 text-sm mb-4 lg:mb-6 leading-relaxed">
                       {link.description}
                     </p>
                   )}
+                  
                   <div className="bg-gray-50/80 backdrop-blur-sm rounded-xl p-3 lg:p-4 mb-4 lg:mb-6 border border-gray-200/40">
-                    <a 
-                      href={link.destination} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700 font-mono text-sm break-all transition-colors duration-200 font-medium"
-                    >
+                    <div className="text-sm text-gray-500 mb-1 font-medium">Short URL:</div>
+                    <div className="text-blue-600 hover:text-blue-700 font-mono text-sm break-all transition-colors duration-200 font-medium">
                       {window.location.origin}{link.source}
-                    </a>
+                    </div>
+                    <div className="text-xs text-gray-400 mt-2">
+                      <span className="font-medium">Redirects to:</span> 
+                      <a 
+                        href={link.destination} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-gray-600 hover:text-blue-600 ml-1 break-all"
+                      >
+                        {link.destination.length > 50 ? `${link.destination.substring(0, 50)}...` : link.destination}
+                      </a>
+                    </div>
                   </div>
+                  
                   <button 
                     onClick={() => copyToClipboard(`${window.location.origin}${link.source}`)}
                     className="w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
@@ -420,6 +528,7 @@ export default function URLShortener() {
                       onClick={() => {
                         setShowForm(true);
                         setEditingIndex(null);
+                        setEditingId(null);
                         setFormData({ source: '', destination: '', title: '', description: '' });
                       }}
                       className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 focus:ring-2 focus:ring-green-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
@@ -474,10 +583,10 @@ export default function URLShortener() {
                         </div>
                         <div>
                           <h3 className="text-xl font-semibold text-gray-900">
-                            Add New Vercel Redirect
+                            {editingId ? 'Edit Vercel Redirect' : 'Add New Vercel Redirect'}
                           </h3>
                           <p className="text-gray-600 text-sm mt-1">
-                            {editingIndex !== null ? 'Update the link details below' : 'Create a new shortened link'}
+                            {editingId ? 'Update the link details below' : 'Create a new shortened link'}
                           </p>
                         </div>
                       </div>
@@ -485,6 +594,7 @@ export default function URLShortener() {
                         onClick={() => {
                           setShowForm(false);
                           setEditingIndex(null);
+                          setEditingId(null);
                           setFormData({ source: '', destination: '', title: '', description: '' });
                         }}
                         className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100/80 rounded-xl transition-all duration-200"
@@ -549,13 +659,15 @@ export default function URLShortener() {
                           type="submit"
                           className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 shadow-lg shadow-blue-500/25 hover:-translate-y-0.5"
                         >
-                          <i className="fas fa-save mr-2"></i>Save Link
+                          <i className={`fas ${editingId ? 'fa-save' : 'fa-plus'} mr-2`}></i>
+                          {editingId ? 'Update Link' : 'Save Link'}
                         </button>
                         <button 
                           type="button"
                           onClick={() => {
                             setShowForm(false);
                             setEditingIndex(null);
+                            setEditingId(null);
                             setFormData({ source: '', destination: '', title: '', description: '' });
                           }}
                           className="inline-flex items-center justify-center px-8 py-4 bg-gray-100/80 hover:bg-gray-200/80 text-gray-700 font-semibold rounded-xl transition-all duration-200 backdrop-blur-sm"
