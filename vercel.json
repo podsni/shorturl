@@ -29,6 +29,11 @@
       "source": "/pris",
       "destination": "https://www.prisma.io/postgres",
       "permanent": false
+    },
+    {
+      "source": "/t3",
+      "destination": "https://t3.chat/",
+      "permanent": false
     }
   ]
 }
