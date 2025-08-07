@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# URL Shortener
+
+A modern, clean, and minimal URL shortener built with Next.js 15 and Turso database.
+
+## Features
+
+- 🔗 Clean URL shortening with custom paths
+- 📱 Responsive, minimal design
+- 🛡️ Admin panel with authentication
+- 🗄️ Turso (libSQL) database for persistence
+- ⚡ Built with Next.js 15 and TypeScript
+- 🎨 Tailwind CSS for styling
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React, TypeScript
+- **Database**: Turso (libSQL)
+- **Styling**: Tailwind CSS
+- **Icons**: Font Awesome
+- **Deployment**: Vercel
 
 ## Getting Started
 
-First, run the development server:
-
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone git@github.com:localan/shortener.git
+cd shortener
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+pnpm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Add your Turso database credentials:
+```env
+TURSO_DATABASE_URL=your_database_url
+TURSO_AUTH_TOKEN=your_auth_token
+ADMIN_PASSWORD=your_admin_password
+```
 
-## Learn More
+4. Run the development server:
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is optimized for deployment on Vercel:
 
-## Deploy on Vercel
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy!
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Usage
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Creating Short Links
+
+1. Go to the Admin panel
+2. Enter admin password
+3. Add new links with source path and destination URL
+4. Optional: Add title and description
+
+### Accessing Short Links
+
+Visit `yourdomain.com/yourpath` to be redirected to the destination URL.
+
+## License
+
+MIT License
