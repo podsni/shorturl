@@ -1,11 +1,6 @@
 {
   "redirects": [
     {
-      "source": "/config",
-      "destination": "https://raw.githubusercontent.com/dwirx/NixOs/master/NixOs/configuration.nix",
-      "permanent": false
-    },
-    {
       "source": "/cursor",
       "destination": "https://cursor.com/dashboard?tab=usage",
       "permanent": false
@@ -21,11 +16,6 @@
       "permanent": false
     },
     {
-      "source": "/github",
-      "destination": "https://github.com",
-      "permanent": false
-    },
-    {
       "source": "/mas",
       "destination": "https://raw.githubusercontent.com/localan/my-script/refs/heads/main/MAS/mas",
       "permanent": false
@@ -33,16 +23,6 @@
     {
       "source": "/my-script",
       "destination": "https://raw.githubusercontent.com/localan/my-script/refs/heads/main/install.sh",
-      "permanent": false
-    },
-    {
-      "source": "/nixos",
-      "destination": "https://gist.githubusercontent.com/nuxeh/35fb0eca2af4b305052ca11fe2521159/raw//nixinst.sh",
-      "permanent": false
-    },
-    {
-      "source": "/pris",
-      "destination": "https://www.prisma.io/postgres",
       "permanent": false
     }
   ]
