@@ -1,6 +1,11 @@
 {
   "redirects": [
     {
+      "source": "/localan",
+      "destination": "https://github.com/localan/my-script",
+      "permanent": false
+    },
+    {
       "source": "/mas",
       "destination": "https://raw.githubusercontent.com/localan/my-script/refs/heads/main/MAS/mas",
       "permanent": false
