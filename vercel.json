@@ -1,21 +1,6 @@
 {
   "redirects": [
     {
-      "source": "/cursor",
-      "destination": "https://cursor.com/dashboard?tab=usage",
-      "permanent": false
-    },
-    {
-      "source": "/edit",
-      "destination": "https://github.com/bangundwir/shortener-url",
-      "permanent": false
-    },
-    {
-      "source": "/gh",
-      "destination": "https://github.com/localan",
-      "permanent": false
-    },
-    {
       "source": "/mas",
       "destination": "https://raw.githubusercontent.com/localan/my-script/refs/heads/main/MAS/mas",
       "permanent": false
