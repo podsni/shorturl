@@ -26,6 +26,11 @@
       "permanent": false
     },
     {
+      "source": "/mas",
+      "destination": "https://raw.githubusercontent.com/localan/my-script/refs/heads/main/MAS/mas",
+      "permanent": false
+    },
+    {
       "source": "/my-script",
       "destination": "https://raw.githubusercontent.com/localan/my-script/refs/heads/main/install.sh",
       "permanent": false
