@@ -22,7 +22,7 @@
     },
     {
       "source": "/wiki",
-      "destination": "https://bangun.miraheze.org/wiki/Pengguna:Bangundwir",
+      "destination": "https://bangun.miraheze.org/",
       "permanent": false
     }
   ]
