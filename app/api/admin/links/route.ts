@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllLinks, getDraftLinks, createLink, updateLink, deleteLink, initDatabase } from '@/lib/db';
+import { triggerGitHubSync } from '@/lib/github';
 
 // Initialize database on first load
 initDatabase().catch(console.error);
@@ -148,6 +149,16 @@ export async function PATCH(request: NextRequest) {
             message: 'Link approved for sync',
             link: updatedLink
           });
+          
+          // Auto-trigger GitHub sync after approval
+          try {
+            console.log('🔄 Auto-triggering GitHub sync after link approval...');
+            await triggerGitHubSync();
+            console.log('✅ GitHub sync triggered successfully');
+          } catch (syncError) {
+            console.error('⚠️ Failed to auto-trigger GitHub sync:', syncError);
+            // Don't fail the approval if sync fails
+          }
         } else {
           return NextResponse.json(
             { error: 'Link not found' },

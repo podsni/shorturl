@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { triggerGitHubSync } from '@/lib/github';
 
 // Delete link by ID
 export async function DELETE(
@@ -64,6 +65,18 @@ export async function DELETE(
       message: 'Link deleted successfully',
       link: deletedLink
     });
+    
+    // Auto-trigger GitHub sync after deletion if it was a published/synced link
+    if (deletedLink.status === 'published' || deletedLink.status === 'synced') {
+      try {
+        console.log('🔄 Auto-triggering GitHub sync after link deletion...');
+        await triggerGitHubSync();
+        console.log('✅ GitHub sync triggered successfully');
+      } catch (syncError) {
+        console.error('⚠️ Failed to auto-trigger GitHub sync:', syncError);
+        // Don't fail the deletion if sync fails
+      }
+    }
   } catch (error) {
     console.error('Error deleting link:', error);
     return NextResponse.json(
@@ -162,6 +175,18 @@ export async function PUT(
       message: 'Link updated successfully',
       link: updatedLink
     });
+    
+    // Auto-trigger GitHub sync after update if it's published/synced
+    if (updatedLink.status === 'published' || updatedLink.status === 'synced') {
+      try {
+        console.log('🔄 Auto-triggering GitHub sync after link update...');
+        await triggerGitHubSync();
+        console.log('✅ GitHub sync triggered successfully');
+      } catch (syncError) {
+        console.error('⚠️ Failed to auto-trigger GitHub sync:', syncError);
+        // Don't fail the update if sync fails
+      }
+    }
   } catch (error) {
     console.error('Error updating link:', error);
     return NextResponse.json(

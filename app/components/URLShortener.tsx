@@ -32,6 +32,10 @@ export default function URLShortener() {
     description: ''
   });
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
+  const [lastSyncStatus, setLastSyncStatus] = useState<{
+    timestamp: string | null,
+    status: 'success' | 'error' | 'pending' | null
+  }>({ timestamp: null, status: null });
 
   useEffect(() => {
     loadLinks();
@@ -53,6 +57,7 @@ export default function URLShortener() {
 
   const syncWithGitHub = async () => {
     try {
+      setLastSyncStatus({ timestamp: null, status: 'pending' });
       showToast('Triggering GitHub Action to sync vercel.json...', 'info');
       
       const response = await fetch('/api/github-sync', {
@@ -62,11 +67,23 @@ export default function URLShortener() {
       const result = await response.json();
       
       if (response.ok) {
+        setLastSyncStatus({ 
+          timestamp: new Date().toISOString(), 
+          status: 'success' 
+        });
         showToast('🚀 GitHub Action triggered! vercel.json will be committed automatically.', 'success');
       } else {
+        setLastSyncStatus({ 
+          timestamp: new Date().toISOString(), 
+          status: 'error' 
+        });
         showToast(result.error || 'Failed to trigger GitHub sync', 'error');
       }
     } catch (error) {
+      setLastSyncStatus({ 
+        timestamp: new Date().toISOString(), 
+        status: 'error' 
+      });
       showToast('Error triggering GitHub sync', 'error');
     }
   };
@@ -518,12 +535,42 @@ export default function URLShortener() {
                     </button>
                   </div>
                   <div className="flex gap-3">
-                    <button 
-                      onClick={syncWithGitHub}
-                      className="inline-flex items-center px-5 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 transition-all duration-200 focus:ring-2 focus:ring-orange-500/20 focus:ring-offset-2 hover:-translate-y-0.5"
-                    >
-                      <i className="fab fa-github mr-2"></i>GitHub Sync
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={syncWithGitHub}
+                        disabled={lastSyncStatus.status === 'pending'}
+                        className={`inline-flex items-center px-5 py-3 font-semibold rounded-xl shadow-lg transition-all duration-200 focus:ring-2 focus:ring-offset-2 hover:-translate-y-0.5 ${
+                          lastSyncStatus.status === 'pending' 
+                            ? 'bg-gray-400 cursor-not-allowed text-white'
+                            : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-500/25 focus:ring-orange-500/20'
+                        }`}
+                      >
+                        {lastSyncStatus.status === 'pending' ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                            Syncing...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fab fa-github mr-2"></i>GitHub Sync
+                          </>
+                        )}
+                      </button>
+                      
+                      {lastSyncStatus.timestamp && (
+                        <div className={`text-xs px-2 py-1 rounded-full ${
+                          lastSyncStatus.status === 'success' 
+                            ? 'bg-green-100 text-green-800' 
+                            : lastSyncStatus.status === 'error'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {lastSyncStatus.status === 'success' && '✅'}
+                          {lastSyncStatus.status === 'error' && '❌'}
+                          {new Date(lastSyncStatus.timestamp).toLocaleTimeString()}
+                        </div>
+                      )}
+                    </div>
                     <button 
                       onClick={() => {
                         setShowForm(true);

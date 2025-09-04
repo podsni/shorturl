@@ -4,7 +4,7 @@
 
 export async function triggerGitHubSync() {
   try {
-    const response = await fetch(`https://api.github.com/repos/localan/shortener/dispatches`, {
+    const response = await fetch(`https://api.github.com/repos/podsni/shorturl/dispatches`, {
       method: 'POST',
       headers: {
         'Authorization': `token ${process.env.GITHUB_TOKEN}`,

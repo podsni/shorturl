@@ -6,9 +6,15 @@ on:
     paths:
       - 'app/**'
       - 'lib/**'
+      - 'scripts/**'
   workflow_dispatch:
   repository_dispatch:
     types: [sync-redirects]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+  TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
 jobs:
   sync-redirects:
@@ -34,9 +40,6 @@ jobs:
       run: pnpm install
       
     - name: Sync database to vercel.json
-      env:
-        TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-        TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
       run: node scripts/sync-to-vercel.js
       
     - name: Check for changes

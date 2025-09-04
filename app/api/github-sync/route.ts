@@ -3,7 +3,7 @@ import { createLink, getAllLinks, deleteLink } from '@/lib/db';
 import { triggerGitHubSync } from '@/lib/github';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = 'localan/shortener'; // Replace with your repo
+const GITHUB_REPO = 'podsni/shorturl'; // Updated to match current repo
 const GITHUB_FILE_PATH = 'redirects.json';
 
 export async function GET() {
@@ -76,9 +76,30 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('x-hub-signature-256');
     const event = request.headers.get('x-github-event');
     
+    console.log(`📥 GitHub webhook received: ${event}`);
+    
     if (event === 'push') {
-      // Auto-sync when redirects.json is updated
-      return GET();
+      const body = await request.json();
+      
+      // Check if redirects.json was modified
+      const modifiedFiles = body?.commits?.flatMap((commit: any) => 
+        [...(commit.added || []), ...(commit.modified || []), ...(commit.removed || [])]
+      ) || [];
+      
+      const redirectsJsonModified = modifiedFiles.includes('redirects.json');
+      
+      if (redirectsJsonModified) {
+        console.log('🔄 redirects.json was modified, triggering auto-sync...');
+        
+        // Auto-sync when redirects.json is updated
+        const syncResult = await GET();
+        console.log('✅ Auto-sync completed from GitHub push');
+        
+        return syncResult;
+      } else {
+        console.log('ℹ️ redirects.json not modified, skipping sync');
+        return NextResponse.json({ message: 'Webhook received - no sync needed' });
+      }
     }
     
     return NextResponse.json({ message: 'Webhook received' });
@@ -86,7 +107,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Webhook error:', error);
     return NextResponse.json({
-      error: 'Webhook processing failed'
+      error: 'Webhook processing failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
