@@ -11,13 +11,18 @@
       "permanent": false
     },
     {
-      "source": "/my-script",
-      "destination": "https://raw.githubusercontent.com/localan/my-script/refs/heads/main/install.sh",
+      "source": "/sbeta",
+      "destination": "http://raw.githubusercontent.com/localan/my-script/refs/heads/beta/install.sh",
       "permanent": false
     },
     {
-      "source": "/sbeta",
-      "destination": "http://raw.githubusercontent.com/localan/my-script/refs/heads/beta/install.sh",
+      "source": "/script",
+      "destination": "https://raw.githubusercontent.com/podsni/my-script/refs/heads/main/install.sh",
+      "permanent": false
+    },
+    {
+      "source": "/wiki",
+      "destination": "https://bangun.miraheze.org/",
       "permanent": false
     }
   ]
