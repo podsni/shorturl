@@ -11,6 +11,11 @@
       "permanent": false
     },
     {
+      "source": "/podsni",
+      "destination": "https://github.com/podsni/shorturl",
+      "permanent": false
+    },
+    {
       "source": "/sbeta",
       "destination": "http://raw.githubusercontent.com/localan/my-script/refs/heads/beta/install.sh",
       "permanent": false
