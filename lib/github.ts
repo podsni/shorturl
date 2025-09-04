@@ -2,9 +2,11 @@
  * Utility function untuk trigger GitHub Actions
  */
 
+import { getGitHubApiUrl } from './repository-config';
+
 export async function triggerGitHubSync() {
   try {
-    const response = await fetch(`https://api.github.com/repos/podsni/shorturl/dispatches`, {
+    const response = await fetch(getGitHubApiUrl('/dispatches'), {
       method: 'POST',
       headers: {
         'Authorization': `token ${process.env.GITHUB_TOKEN}`,

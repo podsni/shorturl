@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createLink, getAllLinks, deleteLink } from '@/lib/db';
 import { triggerGitHubSync } from '@/lib/github';
+import { detectRepository } from '@/lib/repository-config';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = 'podsni/shorturl'; // Updated to match current repo
+const REPO_CONFIG = detectRepository();
+const GITHUB_REPO = REPO_CONFIG.fullName; // Auto-detect current repository
 const GITHUB_FILE_PATH = 'redirects.json';
 
 export async function GET() {

@@ -1,0 +1,32 @@
+{
+  "name": "URL Shortener",
+  "description": "A modern URL shortener with admin panel and GitHub sync",
+  "repository": "https://github.com/podsni/shorturl",
+  "logo": "https://assets.vercel.com/image/upload/v1662130559/nextjs/Icon_light_background.png",
+  "success_url": "/admin",
+  "env": {
+    "TURSO_DATABASE_URL": {
+      "description": "Your Turso database URL",
+      "value": "",
+      "required": true
+    },
+    "TURSO_AUTH_TOKEN": {
+      "description": "Your Turso authentication token", 
+      "value": "",
+      "required": true
+    },
+    "GITHUB_TOKEN": {
+      "description": "GitHub Personal Access Token (for sync features)",
+      "value": "",
+      "required": false
+    },
+    "ADMIN_PASSWORD": {
+      "description": "Password for admin panel access",
+      "value": "admin123",
+      "required": true
+    }
+  },
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install"
+}

@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "node scripts/seed-data.js"
+    "seed": "node scripts/seed-data.js",
+    "setup": "./setup.sh",
+    "fork-setup": "./setup.sh",
+    "postinstall": "echo '\\n🎯 URL Shortener installed successfully!\\n📋 For first-time setup, run: npm run setup\\n📚 Check README.md for detailed instructions\\n'"
   },
   "dependencies": {
     "react": "19.1.0",
