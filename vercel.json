@@ -1,6 +1,11 @@
 {
   "redirects": [
     {
+      "source": "/bwlist",
+      "destination": "https://beta-weblist.vercel.app/",
+      "permanent": false
+    },
+    {
       "source": "/localan",
       "destination": "https://github.com/localan/my-script",
       "permanent": false
